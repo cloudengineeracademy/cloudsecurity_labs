@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Intentionally vulnerable infrastructure for Lab 02.
+  DO NOT deploy this in a production account.
+  This creates misconfigured resources for you to find and fix.
+
+Parameters:
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 AMI
+
+Resources:
+  #############################################
+  # VULNERABILITY 1: Insecure Security Group
+  # Issue: SSH open to the entire internet
+  #############################################
+  InsecureSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: lab02-insecure-sg
+      GroupDescription: "YOURNAME Intentionally insecure - SSH open to world"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: "VULNERABLE - SSH open to entire internet"
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: "HTTP open to internet (acceptable for web servers)"
+      Tags:
+        - Key: Name
+          Value: lab02-insecure-sg
+        - Key: Lab
+          Value: cloud-security-lab-02
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+  #############################################
+  # VULNERABILITY 2: S3 Bucket without protection
+  # Issues: No public access block, no encryption
+  #############################################
+  InsecureBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'lab02-insecure-bucket-${AWS::AccountId}'
+      # Intentionally NOT setting:
+      # - PublicAccessBlockConfiguration (missing = vulnerable)
+      # - BucketEncryption (missing = unencrypted)
+      Tags:
+        - Key: Name
+          Value: lab02-insecure-bucket
+        - Key: Lab
+          Value: cloud-security-lab-02
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+  #############################################
+  # VULNERABILITY 3: EC2 with IMDSv1 + Public IP
+  # Issues: SSRF vulnerable, exposed to internet
+  #############################################
+  InsecureInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: !Ref LatestAmiId
+      SecurityGroupIds:
+        - !Ref InsecureSecurityGroup
+      # Public IP assigned by default in default VPC
+      MetadataOptions:
+        HttpTokens: optional          # VULNERABLE: IMDSv1 enabled
+        HttpEndpoint: enabled
+        HttpPutResponseHopLimit: 1
+      Tags:
+        - Key: Name
+          Value: lab02-insecure-instance
+        - Key: Lab
+          Value: cloud-security-lab-02
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+  #############################################
+  # VULNERABILITY 4: IAM User without MFA
+  # Issue: No MFA, has programmatic access
+  #############################################
+  InsecureUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: lab02-insecure-user
+      Tags:
+        - Key: Lab
+          Value: cloud-security-lab-02
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+  # Access key for the user (makes it show up in recon)
+  InsecureUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref InsecureUser
+
+Outputs:
+  SecurityGroupId:
+    Description: ID of the insecure security group
+    Value: !Ref InsecureSecurityGroup
+
+  BucketName:
+    Description: Name of the insecure S3 bucket
+    Value: !Ref InsecureBucket
+
+  InstanceId:
+    Description: ID of the insecure EC2 instance
+    Value: !Ref InsecureInstance
+
+  InstancePublicIp:
+    Description: Public IP of the insecure instance
+    Value: !GetAtt InsecureInstance.PublicIp
+
+  IAMUserName:
+    Description: Name of the insecure IAM user
+    Value: !Ref InsecureUser
+
+  AccessKeyId:
+    Description: Access key ID (for demonstration - would never output in production!)
+    Value: !Ref InsecureUserAccessKey
+
+  Message:
+    Description: Next steps
+    Value: "Vulnerable infrastructure deployed. Now run the recon commands to find these issues!"

@@ -1,0 +1,183 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lab 04 - Infrastructure for Defence in Depth Audit (Intentionally has security gaps)
+
+Parameters:
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+  # ============================================
+  # NETWORK LAYER - Intentionally weak
+  # ============================================
+
+  # VPC with only public subnets (no private subnets = finding)
+  AuditVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: lab04-audit-vpc
+        - Key: Lab
+          Value: cloud-security-lab-04
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: lab04-igw
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref AuditVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Only public subnet (no private subnets = audit finding)
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref AuditVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: lab04-public-subnet
+        - Key: Lab
+          Value: cloud-security-lab-04
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref AuditVPC
+      Tags:
+        - Key: Name
+          Value: lab04-rt
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+  # Security Group open to internet (audit finding)
+  InsecureSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: lab04-open-sg
+      GroupDescription: Intentionally insecure - SSH open to internet
+      VpcId: !Ref AuditVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH from anywhere (INSECURE)
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP from anywhere
+      Tags:
+        - Key: Name
+          Value: lab04-open-sg
+        - Key: Lab
+          Value: cloud-security-lab-04
+
+  # ============================================
+  # COMPUTE LAYER - Intentionally weak
+  # ============================================
+
+  # EC2 with IMDSv1 and public IP (audit findings)
+  InsecureInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: t2.micro
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref InsecureSecurityGroup
+      MetadataOptions:
+        HttpTokens: optional  # IMDSv1 enabled (INSECURE)
+        HttpEndpoint: enabled
+      Tags:
+        - Key: Name
+          Value: lab04-insecure-instance
+        - Key: Lab
+          Value: cloud-security-lab-04
+
+  # ============================================
+  # DATA LAYER - Intentionally weak
+  # ============================================
+
+  # S3 bucket without encryption (audit finding)
+  UnencryptedBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'lab04-unencrypted-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      Tags:
+        - Key: Name
+          Value: lab04-unencrypted-bucket
+        - Key: Lab
+          Value: cloud-security-lab-04
+
+  # ============================================
+  # IDENTITY LAYER - Intentionally weak
+  # ============================================
+
+  # IAM user with access key (audit finding)
+  InsecureUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: lab04-audit-user
+      Tags:
+        - Key: Lab
+          Value: cloud-security-lab-04
+
+  InsecureUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref InsecureUser
+
+Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref AuditVPC
+
+  SecurityGroupId:
+    Description: Insecure Security Group ID
+    Value: !Ref InsecureSecurityGroup
+
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref InsecureInstance
+
+  InstancePublicIP:
+    Description: EC2 Public IP (this itself is a finding)
+    Value: !GetAtt InsecureInstance.PublicIp
+
+  BucketName:
+    Description: Unencrypted S3 Bucket
+    Value: !Ref UnencryptedBucket
+
+  IAMUser:
+    Description: IAM User (no MFA = finding)
+    Value: !Ref InsecureUser
