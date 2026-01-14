@@ -33,7 +33,7 @@ You should see your Account ID and ARN. If you get an error, run `aws configure`
 |----------|------|
 | IAM | Always free |
 | S3 | Free tier (5GB storage) |
-| EC2 | Free tier (t2.micro) |
+| EC2 | Free tier (t3.micro) |
 | VPC/Security Groups | Always free |
 
 **Important:** Always run the cleanup steps at the end of each lab to avoid charges.

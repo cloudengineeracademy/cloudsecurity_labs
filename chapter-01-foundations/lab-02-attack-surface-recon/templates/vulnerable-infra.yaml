@@ -19,18 +19,18 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: lab02-insecure-sg
-      GroupDescription: "YOURNAME Intentionally insecure - SSH open to world"
+      GroupDescription: 'YOURNAME Intentionally insecure - SSH open to world'
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-          Description: "VULNERABLE - SSH open to entire internet"
+          Description: 'VULNERABLE - SSH open to entire internet'
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-          Description: "HTTP open to internet (acceptable for web servers)"
+          Description: 'HTTP open to internet (acceptable for web servers)'
       Tags:
         - Key: Name
           Value: lab02-insecure-sg
@@ -71,7 +71,7 @@ Resources:
         - !Ref InsecureSecurityGroup
       # Public IP assigned by default in default VPC
       MetadataOptions:
-        HttpTokens: optional          # VULNERABLE: IMDSv1 enabled
+        HttpTokens: optional # VULNERABLE: IMDSv1 enabled
         HttpEndpoint: enabled
         HttpPutResponseHopLimit: 1
       Tags:
@@ -129,4 +129,4 @@ Outputs:
 
   Message:
     Description: Next steps
-    Value: "Vulnerable infrastructure deployed. Now run the recon commands to find these issues!"
+    Value: 'Vulnerable infrastructure deployed. Now run the recon commands to find these issues!'

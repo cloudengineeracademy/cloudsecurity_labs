@@ -17,7 +17,7 @@ In this lab, you'll deploy intentionally vulnerable infrastructure, scan it to d
 
 ## Cost
 
-- **EC2**: t2.micro (free tier eligible)
+- **EC2**: t3.micro (free tier eligible)
 - **S3**: Minimal (empty bucket)
 - **IAM**: Free
 
