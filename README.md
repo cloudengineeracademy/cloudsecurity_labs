@@ -1,80 +1,119 @@
-# Cloud Security Labs - Chapter 1: Foundations
+# Cloud Security Labs
 
-Welcome to the hands-on labs for the Cloud Security Accelerator program.
+Hands-on labs for learning AWS cloud security. Build real skills by deploying infrastructure, finding vulnerabilities, and fixing them.
+
+## Who This Is For
+
+- Developers wanting to understand cloud security
+- DevOps engineers moving into security
+- Anyone preparing for cloud security roles
 
 ## Prerequisites
 
-Before starting these labs, ensure you have:
+Before starting, ensure you have:
 
-- [ ] AWS Account (free tier eligible)
-- [ ] AWS CLI installed and configured
-- [ ] Terminal/Command Line access
-- [ ] A code editor (VS Code, Cursor, etc.)
+- AWS Account (free tier eligible)
+- AWS CLI installed and configured
+- Terminal access (Mac/Linux/WSL)
+- Basic command line familiarity
 
-## Verify Your Setup
-
-Run this command to verify your AWS CLI is configured:
+**Verify your setup:**
 
 ```bash
 aws sts get-caller-identity
 ```
 
-You should see your Account ID and User ARN.
+You should see your Account ID and ARN. If you get an error, run `aws configure` first.
 
-## Cost Warning
+## Cost
 
-**These labs are designed to be 100% FREE** using AWS Free Tier services only.
+**These labs are designed to stay within AWS Free Tier.**
 
-What's FREE:
+| Resource | Cost |
+|----------|------|
+| IAM | Always free |
+| S3 | Free tier (5GB storage) |
+| EC2 | Free tier (t2.micro) |
+| VPC/Security Groups | Always free |
 
-- IAM (Identity and Access Management) - Always free
-- S3 (within free tier: 5GB storage, 20,000 GET requests, 2,000 PUT requests)
-- VPC and Security Groups - Always free
-- CloudTrail (1 trail for management events) - Always free
+**Important:** Always run the cleanup steps at the end of each lab to avoid charges.
 
-What we AVOID:
+---
 
-- AWS Config (costs per rule evaluation)
-- GuardDuty (only 30-day trial)
-- Multiple CloudTrail trails or data events
+## Chapter 1: Foundations
 
-## Lab Overview
+Learn the core concepts every cloud security engineer needs.
 
-| Lab                                                                                   | Duration  | Skills                        |
-| ------------------------------------------------------------------------------------- | --------- | ----------------------------- |
-| [Lab 01: Secure AWS Account](./chapter-01-foundations/lab-01-secure-aws-account/)     | 30-45 min | Account hardening, IAM, MFA   |
-| [Lab 02: Attack Surface Recon](./chapter-01-foundations/lab-02-attack-surface-recon/) | 45 min    | CLI mastery, attacker mindset |
-| [Lab 03: CIA Triad with S3](./chapter-01-foundations/lab-03-cia-triad-s3/)            | 30 min    | S3 security, encryption       |
-| [Lab 04: Defence Layers Audit](./chapter-01-foundations/lab-04-defence-layers-audit/) | 20 min    | Gap analysis, assessment      |
+| Lab | What You'll Learn |
+|-----|-------------------|
+| [Lab 01: Secure AWS Account](./chapter-01-foundations/lab-01-secure-aws-account/) | Account hardening, IAM basics, MFA |
+| [Lab 02: Attack Surface Recon](./chapter-01-foundations/lab-02-attack-surface-recon/) | Deploy vulnerable infra, scan it, fix it |
+| [Lab 03: CIA Triad with S3](./chapter-01-foundations/lab-03-cia-triad-s3/) | Confidentiality, Integrity, Availability |
+| [Lab 04: Defence Layers Audit](./chapter-01-foundations/lab-04-defence-layers-audit/) | 6 defence layers, security auditing |
 
-## Exercises
+**Complete the labs in order.** Each builds on concepts from the previous one.
 
-| Exercise                                                               | Duration | Type                  |
-| ---------------------------------------------------------------------- | -------- | --------------------- |
-| [Breach Analysis](./chapter-01-foundations/exercises/breach-analysis/) | 20 min   | Case study            |
-| [Threat Modeling](./chapter-01-foundations/exercises/threat-modeling/) | 30 min   | Architecture analysis |
-
-## Mini Project
-
-| Project                                                                        | Duration | Skills                     |
-| ------------------------------------------------------------------------------ | -------- | -------------------------- |
-| [Security Audit Script](./chapter-01-foundations/mini-project-security-audit/) | 60 min   | Bash scripting, automation |
+---
 
 ## How to Use These Labs
 
-1. Clone this repository
-2. Complete labs in order (Lab 01 → 02 → 03 → 04)
-3. Each lab has a `README.md` with step-by-step instructions
-4. Run the verification scripts to check your work
-5. Complete the exercises after finishing the labs
+1. **Clone this repository**
+   ```bash
+   git clone <your-repo-url>
+   cd cloudsecurity_labs
+   ```
+
+2. **Complete labs in order**
+   - Lab 01 → 02 → 03 → 04
+   - Each lab has a README with step-by-step instructions
+
+3. **Don't just copy-paste**
+   - Read what each command does
+   - Understand the "why" behind each check
+   - Verify results in the AWS Console
+
+4. **Clean up after each lab**
+   - Delete resources to avoid charges
+   - Each lab has cleanup instructions at the end
+
+---
+
+## The Security Engineer Mindset
+
+As you work through these labs, think like a security engineer:
+
+**1. Assume Breach**
+Don't ask "will we be attacked?" Ask "when we're attacked, what will they get?"
+
+**2. Think in Layers**
+No single control is perfect. If the firewall fails, does encryption save you?
+
+**3. Blast Radius**
+When something goes wrong, how bad is it? A compromised instance with no IAM role is bad. With admin permissions? Catastrophic.
+
+**4. Evidence Over Assumptions**
+Don't assume things are configured correctly. Query the actual state. Trust but verify.
+
+---
 
 ## Getting Help
 
 If you get stuck:
 
 1. Re-read the instructions carefully
-2. Check AWS documentation
-3. Google the error message
-4. Ask in the course community
+2. Check the expected output in the lab
+3. Verify in the AWS Console
+4. Search the error message
 
-Let's build your Cloud Security Skills!
+---
+
+## What's Next
+
+After completing Chapter 1, you'll have:
+
+- A secured AWS account foundation
+- Skills to find and fix vulnerabilities
+- Understanding of CIA controls
+- Experience with security auditing
+
+Continue to Chapter 2: IAM Deep Dive (coming soon).
