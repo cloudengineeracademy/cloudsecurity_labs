@@ -50,6 +50,7 @@ Learn the core concepts every cloud security engineer needs.
 | [Lab 02: Attack Surface Recon](./chapter-01-foundations/lab-02-attack-surface-recon/) | Deploy vulnerable infra, scan it, fix it |
 | [Lab 03: CIA Triad with S3](./chapter-01-foundations/lab-03-cia-triad-s3/) | Confidentiality, Integrity, Availability |
 | [Lab 04: Defence Layers Audit](./chapter-01-foundations/lab-04-defence-layers-audit/) | 6 defence layers, security auditing |
+| [Lab 05: Share Your Journey](./chapter-01-foundations/lab-05-share-your-journey/) | Write a LinkedIn article, build your brand |
 
 **Complete the labs in order.** Each builds on concepts from the previous one.
 
