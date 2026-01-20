@@ -39,25 +39,25 @@ fi
 echo ""
 echo "Deleting all object versions..."
 
-# Delete all versions
-aws s3api list-object-versions --bucket "$BUCKET_NAME" --output json 2>/dev/null | \
-jq -r '.Versions[]? | .Key + " " + .VersionId' | \
+# Delete all versions (no jq required)
+aws s3api list-object-versions --bucket "$BUCKET_NAME" --query 'Versions[].{Key:Key,VersionId:VersionId}' --output text 2>/dev/null | \
 while read key version; do
-    if [ -n "$key" ] && [ -n "$version" ]; then
-        aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null
-        echo "  Deleted version: $key ($version)"
+    if [ -n "$key" ] && [ "$key" != "None" ] && [ -n "$version" ] && [ "$version" != "None" ]; then
+        if aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null; then
+            echo "  Deleted version: $key ($version)"
+        fi
     fi
 done
 
 echo "Deleting delete markers..."
 
-# Delete delete markers
-aws s3api list-object-versions --bucket "$BUCKET_NAME" --output json 2>/dev/null | \
-jq -r '.DeleteMarkers[]? | .Key + " " + .VersionId' | \
+# Delete delete markers (no jq required)
+aws s3api list-object-versions --bucket "$BUCKET_NAME" --query 'DeleteMarkers[].{Key:Key,VersionId:VersionId}' --output text 2>/dev/null | \
 while read key version; do
-    if [ -n "$key" ] && [ -n "$version" ]; then
-        aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null
-        echo "  Deleted marker: $key ($version)"
+    if [ -n "$key" ] && [ "$key" != "None" ] && [ -n "$version" ] && [ "$version" != "None" ]; then
+        if aws s3api delete-object --bucket "$BUCKET_NAME" --key "$key" --version-id "$version" 2>/dev/null; then
+            echo "  Deleted marker: $key ($version)"
+        fi
     fi
 done
 
@@ -67,8 +67,12 @@ echo "Deleting bucket..."
 if aws s3 rb "s3://$BUCKET_NAME" 2>/dev/null; then
     echo -e "${GREEN}Successfully deleted bucket: $BUCKET_NAME${NC}"
 else
-    echo -e "${RED}Failed to delete bucket. It may have remaining objects.${NC}"
-    echo "Try: aws s3 rb s3://$BUCKET_NAME --force"
+    echo -e "${RED}Failed to delete bucket. Trying force delete...${NC}"
+    if aws s3 rb "s3://$BUCKET_NAME" --force 2>/dev/null; then
+        echo -e "${GREEN}Successfully force-deleted bucket: $BUCKET_NAME${NC}"
+    else
+        echo -e "${RED}Could not delete bucket. Try manually in AWS Console.${NC}"
+    fi
 fi
 
 echo ""
