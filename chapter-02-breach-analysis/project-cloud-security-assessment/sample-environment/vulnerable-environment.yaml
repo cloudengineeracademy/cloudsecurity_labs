@@ -1,0 +1,244 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Cloud Security Assessment - Sample Vulnerable Environment
+  INTENTIONALLY VULNERABLE - For assessment practice only
+  DO NOT deploy in production accounts
+  Creates multiple resources with varying security postures for assessment exercises
+
+Parameters:
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 AMI
+
+Resources:
+  #############################################
+  # VULNERABILITY 1: Insecure Security Group
+  # Issue: SSH and HTTP open to entire internet
+  #############################################
+  InsecureSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: assessment-insecure-sg
+      GroupDescription: 'VULNERABLE - Open to internet for assessment'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: 'VULNERABLE - SSH open to entire internet'
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: 'HTTP open to internet'
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: 'HTTPS open to internet'
+      Tags:
+        - Key: Name
+          Value: assessment-insecure-sg
+        - Key: Assessment
+          Value: target
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+  #############################################
+  # SECURE Security Group (for comparison)
+  #############################################
+  SecureSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: assessment-secure-sg
+      GroupDescription: 'SECURE - Properly configured security group'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.0.0.0/8
+          Description: 'HTTPS from internal only'
+      Tags:
+        - Key: Name
+          Value: assessment-secure-sg
+        - Key: Assessment
+          Value: target
+        - Key: Purpose
+          Value: secure-example
+
+  #############################################
+  # VULNERABILITY 2: S3 Bucket without protection
+  # Issues: No public access block, no encryption
+  #############################################
+  InsecureBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'assessment-insecure-${AWS::AccountId}'
+      # Intentionally NOT setting:
+      # - PublicAccessBlockConfiguration
+      # - BucketEncryption
+      Tags:
+        - Key: Name
+          Value: assessment-insecure-bucket
+        - Key: Assessment
+          Value: target
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+  #############################################
+  # SECURE S3 Bucket (for comparison)
+  #############################################
+  SecureBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'assessment-secure-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Name
+          Value: assessment-secure-bucket
+        - Key: Assessment
+          Value: target
+        - Key: Purpose
+          Value: secure-example
+
+  #############################################
+  # VULNERABILITY 3: EC2 with IMDSv1
+  # Issue: SSRF can steal credentials
+  #############################################
+  VulnerableInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: !Ref LatestAmiId
+      SecurityGroupIds:
+        - !Ref InsecureSecurityGroup
+      MetadataOptions:
+        HttpTokens: optional  # VULNERABLE: IMDSv1 enabled
+        HttpEndpoint: enabled
+        HttpPutResponseHopLimit: 1
+      Tags:
+        - Key: Name
+          Value: assessment-vulnerable-instance
+        - Key: Assessment
+          Value: target
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+  #############################################
+  # SECURE EC2 Instance (for comparison)
+  #############################################
+  SecureInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: !Ref LatestAmiId
+      SecurityGroupIds:
+        - !Ref SecureSecurityGroup
+      MetadataOptions:
+        HttpTokens: required  # SECURE: IMDSv2 required
+        HttpEndpoint: enabled
+        HttpPutResponseHopLimit: 1
+      Tags:
+        - Key: Name
+          Value: assessment-secure-instance
+        - Key: Assessment
+          Value: target
+        - Key: Purpose
+          Value: secure-example
+
+  #############################################
+  # VULNERABILITY 4: IAM User without MFA
+  # Issue: Password-only authentication
+  #############################################
+  InsecureUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: assessment-insecure-user
+      Tags:
+        - Key: Assessment
+          Value: target
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+  # Access key for the insecure user (bad practice)
+  InsecureUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref InsecureUser
+
+  #############################################
+  # IAM Role with excessive permissions
+  #############################################
+  OverPermissionedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: assessment-overpermissioned-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      # Intentionally broad permissions
+      Policies:
+        - PolicyName: BroadAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:*
+                  - ec2:Describe*
+                Resource: '*'
+      Tags:
+        - Key: Assessment
+          Value: target
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+Outputs:
+  InsecureSecurityGroupId:
+    Description: ID of the insecure security group
+    Value: !Ref InsecureSecurityGroup
+
+  SecureSecurityGroupId:
+    Description: ID of the secure security group
+    Value: !Ref SecureSecurityGroup
+
+  InsecureBucketName:
+    Description: Name of the insecure S3 bucket
+    Value: !Ref InsecureBucket
+
+  SecureBucketName:
+    Description: Name of the secure S3 bucket
+    Value: !Ref SecureBucket
+
+  VulnerableInstanceId:
+    Description: ID of the vulnerable EC2 instance
+    Value: !Ref VulnerableInstance
+
+  SecureInstanceId:
+    Description: ID of the secure EC2 instance
+    Value: !Ref SecureInstance
+
+  InsecureUserName:
+    Description: Name of the insecure IAM user
+    Value: !Ref InsecureUser
+
+  Message:
+    Description: Assessment instructions
+    Value: |
+      Sample environment deployed! Run the assessment scripts:
+      1. ./scripts/recon.sh - Discover resources
+      2. ./scripts/security-scan.sh - Find vulnerabilities
+      3. Document findings and create your report

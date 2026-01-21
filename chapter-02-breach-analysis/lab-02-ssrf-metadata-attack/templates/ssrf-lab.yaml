@@ -1,0 +1,269 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Lab 02: SSRF and Metadata Attack Simulation
+  INTENTIONALLY VULNERABLE - For educational purposes only
+  Demonstrates the Capital One attack pattern with:
+  - EC2 with IMDSv1 (vulnerable)
+  - Flask app with SSRF vulnerability
+  - Over-permissioned IAM role
+  DO NOT deploy in production accounts
+
+Parameters:
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 AMI
+
+Resources:
+  #############################################
+  # S3 Bucket with "sensitive" data
+  #############################################
+  SensitiveDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'lab02-ssrf-data-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: lab02-ssrf-data
+        - Key: Lab
+          Value: cloud-security-lab-02-ssrf
+        - Key: Purpose
+          Value: educational-breach-simulation
+
+  #############################################
+  # IAM Role - Over-permissioned (intentionally)
+  #############################################
+  VulnerableRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: lab02-ssrf-vulnerable-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      # INTENTIONALLY OVER-PERMISSIONED
+      # In production, this role should only have permissions it needs
+      Policies:
+        - PolicyName: S3ReadAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::lab02-ssrf-data-${AWS::AccountId}'
+                  - !Sub 'arn:aws:s3:::lab02-ssrf-data-${AWS::AccountId}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListAllMyBuckets
+                Resource: '*'
+      Tags:
+        - Key: Lab
+          Value: cloud-security-lab-02-ssrf
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: lab02-ssrf-vulnerable-profile
+      Roles:
+        - !Ref VulnerableRole
+
+  #############################################
+  # Security Group - HTTP access
+  #############################################
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: lab02-ssrf-web-sg
+      GroupDescription: Allow HTTP access for SSRF lab
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: 'HTTP access for vulnerable app'
+      Tags:
+        - Key: Name
+          Value: lab02-ssrf-web-sg
+        - Key: Lab
+          Value: cloud-security-lab-02-ssrf
+
+  #############################################
+  # EC2 Instance with IMDSv1 (VULNERABLE)
+  #############################################
+  VulnerableInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: SensitiveDataBucket
+    Properties:
+      InstanceType: t2.micro
+      ImageId: !Ref LatestAmiId
+      IamInstanceProfile: !Ref InstanceProfile
+      SecurityGroupIds:
+        - !Ref WebSecurityGroup
+      # VULNERABILITY: IMDSv1 enabled
+      MetadataOptions:
+        HttpTokens: optional  # VULNERABLE: IMDSv1 is enabled
+        HttpEndpoint: enabled
+        HttpPutResponseHopLimit: 1
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+
+          # Log output for debugging
+          exec > /var/log/user-data.log 2>&1
+
+          echo "Starting setup..."
+
+          # Install dependencies
+          dnf install -y python3 python3-pip
+
+          # Install Flask and requests
+          pip3 install flask requests
+
+          # Create the vulnerable app
+          mkdir -p /opt/ssrf-app
+          cat > /opt/ssrf-app/app.py << 'FLASK_APP'
+          from flask import Flask, request, jsonify
+          import requests
+
+          app = Flask(__name__)
+
+          @app.route('/')
+          def index():
+              return '''
+              <h1>SSRF Lab - Vulnerable Application</h1>
+              <p>This application has an SSRF vulnerability for educational purposes.</p>
+              <p>Endpoints:</p>
+              <ul>
+                  <li><code>/health</code> - Health check</li>
+                  <li><code>/fetch?url=URL</code> - Fetch a URL (VULNERABLE)</li>
+              </ul>
+              '''
+
+          @app.route('/health')
+          def health():
+              return jsonify({"status": "healthy"})
+
+          @app.route('/fetch')
+          def fetch_url():
+              """
+              INTENTIONALLY VULNERABLE ENDPOINT
+              This endpoint will fetch any URL, including internal services.
+              This is a Server-Side Request Forgery (SSRF) vulnerability.
+              """
+              url = request.args.get('url')
+              if not url:
+                  return jsonify({"error": "Missing 'url' parameter"}), 400
+
+              try:
+                  # VULNERABLE: No validation of the URL
+                  # A real application should:
+                  # 1. Validate URL against an allowlist
+                  # 2. Block internal IP ranges (169.254.x.x, 10.x.x.x, etc.)
+                  # 3. Use a URL parsing library to prevent bypass techniques
+                  response = requests.get(url, timeout=5)
+                  return response.text, response.status_code
+              except requests.exceptions.RequestException as e:
+                  return jsonify({"error": str(e)}), 500
+
+          if __name__ == '__main__':
+              app.run(host='0.0.0.0', port=80)
+          FLASK_APP
+
+          # Create systemd service
+          cat > /etc/systemd/system/ssrf-app.service << 'SERVICE'
+          [Unit]
+          Description=SSRF Vulnerable Flask App
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          WorkingDirectory=/opt/ssrf-app
+          ExecStart=/usr/bin/python3 /opt/ssrf-app/app.py
+          Restart=always
+          RestartSec=3
+
+          [Install]
+          WantedBy=multi-user.target
+          SERVICE
+
+          # Upload sensitive data to S3
+          aws s3 cp - s3://lab02-ssrf-data-${AWS::AccountId}/sensitive-data.txt << 'DATA'
+          =====================================
+          SIMULATED SENSITIVE DATA
+          =====================================
+
+          This file represents sensitive customer data.
+          In the Capital One breach, this was:
+          - 106 million customer records
+          - 140,000 Social Security numbers
+          - 80,000 bank account numbers
+          - Credit card applications
+
+          If you can read this, you've successfully
+          simulated the Capital One attack pattern:
+
+          1. Exploited SSRF vulnerability
+          2. Accessed EC2 metadata service (IMDSv1)
+          3. Stole IAM credentials
+          4. Used credentials to access S3
+
+          NEXT: Fix this by enabling IMDSv2!
+          DATA
+
+          # Start the service
+          systemctl daemon-reload
+          systemctl enable ssrf-app
+          systemctl start ssrf-app
+
+          echo "Setup complete!"
+      Tags:
+        - Key: Name
+          Value: lab02-ssrf-vulnerable-instance
+        - Key: Lab
+          Value: cloud-security-lab-02-ssrf
+        - Key: Purpose
+          Value: intentionally-vulnerable
+
+Outputs:
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref VulnerableInstance
+
+  InstancePublicIp:
+    Description: Public IP of the vulnerable instance
+    Value: !GetAtt VulnerableInstance.PublicIp
+
+  BucketName:
+    Description: S3 bucket with sensitive data
+    Value: !Ref SensitiveDataBucket
+
+  RoleName:
+    Description: IAM role attached to the instance
+    Value: !Ref VulnerableRole
+
+  AppUrl:
+    Description: URL of the vulnerable application
+    Value: !Sub 'http://${VulnerableInstance.PublicIp}'
+
+  AttackCommand:
+    Description: Command to start the SSRF attack
+    Value: !Sub 'curl "http://${VulnerableInstance.PublicIp}/fetch?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/"'
+
+  Message:
+    Description: Next steps
+    Value: 'Wait 2-3 minutes for the app to start, then follow the lab instructions to perform the SSRF attack.'
