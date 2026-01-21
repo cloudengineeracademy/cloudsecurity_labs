@@ -33,14 +33,27 @@ You should see your Account ID and ARN. If you get an error, run `aws configure`
 |----------|------|
 | IAM | Always free |
 | S3 | Free tier (5GB storage) |
-| EC2 | Free tier (t3.micro) |
+| EC2 | Free tier (t2.micro, 750 hrs/month) |
+| Secrets Manager | 30-day free trial |
 | VPC/Security Groups | Always free |
 
 **Important:** Always run the cleanup steps at the end of each lab to avoid charges.
 
 ---
 
-## Chapter 1: Foundations
+## Learning Path
+
+```
+Chapter 01: Foundations
+    ↓
+Chapter 02: Real-World Breach Analysis
+    ↓
+Project: Cloud Security Assessment
+```
+
+---
+
+## Chapter 01: Foundations
 
 Learn the core concepts every cloud security engineer needs.
 
@@ -52,7 +65,24 @@ Learn the core concepts every cloud security engineer needs.
 | [Lab 04: Defence Layers Audit](./chapter-01-foundations/lab-04-defence-layers-audit/) | 6 defence layers, security auditing |
 | [Lab 05: Share Your Journey](./chapter-01-foundations/lab-05-share-your-journey/) | Write a LinkedIn article, build your brand |
 
-**Complete the labs in order.** Each builds on concepts from the previous one.
+---
+
+## Chapter 02: Real-World Breach Analysis
+
+Learn from the failures that cost companies billions. Analyze Capital One, Uber, and LastPass breaches, then simulate attack patterns in a safe environment.
+
+| Lab | What You'll Learn |
+|-----|-------------------|
+| [Lab 01: Breach Analysis Framework](./chapter-02-breach-analysis/lab-01-breach-framework/) | The 5-question methodology for analyzing any breach |
+| [Lab 02: SSRF and Metadata Attacks](./chapter-02-breach-analysis/lab-02-ssrf-metadata-attack/) | Simulate the Capital One attack (SSRF + IMDSv1) |
+| [Lab 03: Credential Security](./chapter-02-breach-analysis/lab-03-credential-security/) | Find hardcoded secrets, use Secrets Manager |
+| [Lab 04: Breach Post-Mortem Report](./chapter-02-breach-analysis/lab-04-breach-postmortem/) | Write professional security documentation |
+
+### Capstone Project
+
+| Project | What You'll Do |
+|---------|----------------|
+| [Cloud Security Assessment](./chapter-02-breach-analysis/project-cloud-security-assessment/) | Conduct a full security assessment of an AWS environment |
 
 ---
 
@@ -61,11 +91,11 @@ Learn the core concepts every cloud security engineer needs.
 1. **Clone this repository**
    ```bash
    git clone <your-repo-url>
-   cd cloudsecurity_labs
+   cd cloud-security-labs
    ```
 
-2. **Complete labs in order**
-   - Lab 01 → 02 → 03 → 04
+2. **Complete chapters in order**
+   - Chapter 01 → Chapter 02 → Project
    - Each lab has a README with step-by-step instructions
 
 3. **Don't just copy-paste**
@@ -97,6 +127,20 @@ Don't assume things are configured correctly. Query the actual state. Trust but 
 
 ---
 
+## The 5-Question Framework
+
+Every breach can be analyzed with five questions:
+
+1. **How did they get in?** (Initial access)
+2. **What did they find?** (Discovery)
+3. **How did they move?** (Lateral movement)
+4. **What did they take?** (Impact)
+5. **When could we have detected it?** (Detection gaps)
+
+You'll master this framework in Chapter 02.
+
+---
+
 ## Getting Help
 
 If you get stuck:
@@ -108,13 +152,19 @@ If you get stuck:
 
 ---
 
-## What's Next
+## What You'll Achieve
 
-After completing Chapter 1, you'll have:
+After completing these labs, you'll have:
 
 - A secured AWS account foundation
-- Skills to find and fix vulnerabilities
-- Understanding of CIA controls
-- Experience with security auditing
+- Skills to find and fix cloud vulnerabilities
+- Understanding of real breach patterns (Capital One, Uber, LastPass)
+- Experience simulating attacks and implementing fixes
+- Ability to write professional security reports
+- A portfolio project demonstrating your skills
 
-Continue to Chapter 2: IAM Deep Dive (coming soon).
+---
+
+## Start Learning
+
+Begin with [Chapter 01: Foundations](./chapter-01-foundations/)
