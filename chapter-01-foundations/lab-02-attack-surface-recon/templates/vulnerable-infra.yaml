@@ -41,7 +41,9 @@ Resources:
 
   #############################################
   # VULNERABILITY 2: S3 Bucket without protection
-  # Issues: No public access block, no encryption
+  # Issue: No public access block configured
+  # Note: Since Jan 2023, AWS applies default SSE-S3 encryption
+  #       automatically, so encryption is no longer a finding here
   #############################################
   InsecureBucket:
     Type: AWS::S3::Bucket
@@ -49,7 +51,6 @@ Resources:
       BucketName: !Sub 'lab02-insecure-bucket-${AWS::AccountId}'
       # Intentionally NOT setting:
       # - PublicAccessBlockConfiguration (missing = vulnerable)
-      # - BucketEncryption (missing = unencrypted)
       Tags:
         - Key: Name
           Value: lab02-insecure-bucket

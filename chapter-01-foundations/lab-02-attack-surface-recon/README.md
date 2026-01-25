@@ -11,7 +11,7 @@ In this lab, you'll deploy intentionally vulnerable infrastructure, scan it to d
 | Resource | Vulnerability | Risk |
 |----------|--------------|------|
 | Security Group | SSH (22) open to 0.0.0.0/0 | Critical |
-| S3 Bucket | No public access block, no encryption | High |
+| S3 Bucket | No public access block | High |
 | EC2 Instance | Public IP + IMDSv1 enabled | High |
 | IAM User | No MFA, has access keys | High |
 
@@ -83,7 +83,7 @@ Security Group SSH: [CRITICAL] SSH OPEN TO INTERNET
 
 [3/4] DATA
 S3 Public Access Block: [HIGH] NO PUBLIC ACCESS BLOCK
-S3 Encryption: [MEDIUM] NOT ENCRYPTED
+S3 Encryption: [PASS] Encryption enabled (AWS default since Jan 2023)
 
 [4/4] COMPUTE
 EC2 IMDS Version: [HIGH] IMDSv1 ENABLED (SSRF VULNERABLE)
@@ -180,39 +180,44 @@ Should show all four settings as `true`.
 
 ---
 
-### Issue 3: S3 Bucket Not Encrypted (MEDIUM)
+### Issue 3: S3 Bucket Using Default Encryption (INFO)
+
+> **Note:** Since January 2023, AWS automatically encrypts all new S3 buckets with SSE-S3 (AES256). This is a good default, but you should verify it's in place and understand when to use stronger encryption (KMS).
 
 #### Find It
 
 ```bash
 BUCKET=$(aws s3api list-buckets --query 'Buckets[?contains(Name, `lab02`)].Name' --output text)
-aws s3api get-bucket-encryption --bucket $BUCKET 2>&1
+aws s3api get-bucket-encryption --bucket $BUCKET
 ```
 
-You'll see `ServerSideEncryptionConfigurationNotFoundError` - data is not encrypted at rest.
+You'll see `SSEAlgorithm: AES256` - AWS applied default encryption automatically.
 
-#### Why It's Dangerous
+#### Why This Matters
 
-- If storage is physically compromised, data is readable
-- Compliance requirements (HIPAA, PCI-DSS) mandate encryption
+- **SSE-S3 (AES256)**: AWS manages keys, good baseline protection
+- **SSE-KMS**: You control keys, better for compliance (HIPAA, PCI-DSS)
+- **SSE-KMS with CMK**: Full control, audit trail via CloudTrail
 
-#### Fix It
+For sensitive data, organizations often require KMS encryption with customer-managed keys for audit and access control.
+
+#### Upgrade to KMS (Optional Exercise)
 
 ```bash
 BUCKET=$(aws s3api list-buckets --query 'Buckets[?contains(Name, `lab02`)].Name' --output text)
 
 aws s3api put-bucket-encryption --bucket $BUCKET --server-side-encryption-configuration '{
-  "Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]
+  "Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "aws:kms"}}]
 }'
 ```
 
-#### Verify It's Gone
+#### Verify
 
 ```bash
 aws s3api get-bucket-encryption --bucket $BUCKET
 ```
 
-Should show `AES256` encryption configured.
+Should show `aws:kms` if you upgraded, or `AES256` if using the AWS default.
 
 ---
 
@@ -356,7 +361,7 @@ Should return "Stack does not exist" when complete.
 |-------|------|--------------|
 | SSH open to 0.0.0.0/0 | Critical | Removed the ingress rule |
 | S3 no public access block | High | Enabled all 4 block settings |
-| S3 not encrypted | Medium | Enabled AES-256 SSE |
+| S3 encryption | Info | Verified AWS default encryption (optionally upgraded to KMS) |
 | EC2 IMDSv1 enabled | High | Required IMDSv2 tokens |
 | IAM user has access key | High | Deleted the access key |
 
