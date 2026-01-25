@@ -67,7 +67,7 @@ The CloudFormation template creates:
 
 | Resource | Purpose | Vulnerability |
 |----------|---------|---------------|
-| EC2 t3.micro | Runs vulnerable Flask app | IMDSv1 enabled |
+| EC2 t2.micro | Runs vulnerable Flask app | IMDSv1 enabled |
 | Security Group | Allows HTTP access | Port 80 open |
 | IAM Role | S3 read access | Over-permissioned |
 | S3 Bucket | Contains "sensitive" data | Accessible by role |
@@ -118,6 +118,70 @@ curl http://$EC2_IP/health
 Expected output: `{"status": "healthy"}`
 
 If you get "Connection refused", wait another minute for the app to start.
+
+### Troubleshooting: If the App Won't Start
+
+If the health check keeps failing after 5 minutes, here's how to debug:
+
+**Understanding What Happens During Deployment:**
+
+When the EC2 instance launches, it runs a UserData script that:
+1. Waits for network connectivity
+2. Installs Python 3 and pip
+3. Installs Flask and requests via pip
+4. Creates the vulnerable Flask application
+5. Sets up a systemd service
+6. Uploads test data to S3
+7. Starts the Flask app
+
+**Common Issues:**
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| "Connection refused" | App not started yet | Wait 3-5 minutes total |
+| "Empty reply from server" | App crashed during startup | Check logs (see below) |
+| Timeout | Security group issue | Verify port 80 is open |
+
+**How to Check Logs (Advanced):**
+
+If you need to debug, you can SSH into the instance:
+
+1. Add SSH access to the security group:
+```bash
+SG_ID=$(aws ec2 describe-security-groups --group-names lab02-ssrf-web-sg --query 'SecurityGroups[0].GroupId' --output text)
+
+aws ec2 authorize-security-group-ingress \
+  --group-id $SG_ID \
+  --protocol tcp \
+  --port 22 \
+  --cidr YOUR_IP/32
+```
+
+2. Connect via EC2 Instance Connect in the AWS Console, or SSH with a key pair
+
+3. Check the setup log:
+```bash
+sudo cat /var/log/user-data.log
+```
+
+4. Check the Flask app service:
+```bash
+sudo systemctl status ssrf-app
+sudo journalctl -u ssrf-app -f
+```
+
+**Manual Fix (If Needed):**
+
+If the app didn't start, you can manually start it:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart ssrf-app
+```
+
+If the S3 upload failed, you can manually upload:
+```bash
+aws s3 cp /tmp/sensitive-data.txt s3://lab02-ssrf-data-YOUR_ACCOUNT_ID/sensitive-data.txt
+```
 
 ---
 

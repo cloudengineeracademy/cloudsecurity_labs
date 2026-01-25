@@ -37,6 +37,16 @@ Resources:
 
   #############################################
   # IAM Role - Over-permissioned (intentionally)
+  #
+  # WHY THESE PERMISSIONS:
+  # - s3:PutObject: Needed during setup to upload test data
+  # - s3:GetObject: What the "attacker" will use to steal data
+  # - s3:ListBucket: Allows listing bucket contents
+  # - s3:ListAllMyBuckets: Allows discovering all buckets
+  #
+  # IN A REAL BREACH:
+  # The Capital One role had broad S3 access it didn't need.
+  # This is the "over-permissioned role" part of the attack.
   #############################################
   VulnerableRole:
     Type: AWS::IAM::Role
@@ -49,20 +59,21 @@ Resources:
             Principal:
               Service: ec2.amazonaws.com
             Action: sts:AssumeRole
-      # INTENTIONALLY OVER-PERMISSIONED
-      # In production, this role should only have permissions it needs
       Policies:
-        - PolicyName: S3ReadAccess
+        - PolicyName: S3Access
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+              # Access to the lab bucket
               - Effect: Allow
                 Action:
                   - s3:GetObject
+                  - s3:PutObject
                   - s3:ListBucket
                 Resource:
                   - !Sub 'arn:aws:s3:::lab02-ssrf-data-${AWS::AccountId}'
                   - !Sub 'arn:aws:s3:::lab02-ssrf-data-${AWS::AccountId}/*'
+              # Ability to discover buckets (reconnaissance)
               - Effect: Allow
                 Action:
                   - s3:ListAllMyBuckets
@@ -102,6 +113,17 @@ Resources:
 
   #############################################
   # EC2 Instance with IMDSv1 (VULNERABLE)
+  #
+  # WHY IMDSv1 IS DANGEROUS:
+  # - Any process on the instance can query 169.254.169.254
+  # - No authentication required
+  # - Returns IAM credentials directly
+  # - SSRF vulnerabilities can reach it
+  #
+  # IMDSv2 FIXES THIS:
+  # - Requires a session token from a PUT request
+  # - SSRF attacks typically can only make GET requests
+  # - Token has a TTL and hop limit
   #############################################
   VulnerableInstance:
     Type: AWS::EC2::Instance
@@ -112,30 +134,92 @@ Resources:
       IamInstanceProfile: !Ref InstanceProfile
       SecurityGroupIds:
         - !Ref WebSecurityGroup
-      # VULNERABILITY: IMDSv1 enabled
       MetadataOptions:
-        HttpTokens: optional  # VULNERABLE: IMDSv1 is enabled
-        HttpEndpoint: enabled
+        HttpTokens: optional      # VULNERABLE: IMDSv1 enabled (no token required)
+        HttpEndpoint: enabled     # Metadata service is accessible
         HttpPutResponseHopLimit: 1
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          set -e
 
-          # Log output for debugging
+          #############################################
+          # SETUP SCRIPT FOR SSRF LAB
+          #
+          # This script:
+          # 1. Installs Python and Flask
+          # 2. Creates a vulnerable web application
+          # 3. Uploads test data to S3
+          # 4. Starts the Flask application
+          #
+          # IMPORTANT: We don't use 'set -e' because:
+          # - If S3 upload fails, we still want the app to start
+          # - The lab can proceed even without the test data
+          # - Users can manually upload data if needed
+          #############################################
+
+          # Log all output for debugging
           exec > /var/log/user-data.log 2>&1
+          echo "=========================================="
+          echo "SSRF Lab Setup - Started at $(date)"
+          echo "=========================================="
 
-          echo "Starting setup..."
+          #############################################
+          # STEP 1: Wait for network connectivity
+          #############################################
+          echo ""
+          echo "[Step 1/5] Waiting for network..."
 
-          # Install dependencies
+          for i in {1..30}; do
+            if curl -s --max-time 5 http://169.254.169.254/latest/meta-data/ > /dev/null 2>&1; then
+              echo "Network is ready"
+              break
+            fi
+            echo "Waiting for network... ($i/30)"
+            sleep 2
+          done
+
+          #############################################
+          # STEP 2: Install dependencies
+          #############################################
+          echo ""
+          echo "[Step 2/5] Installing dependencies..."
+
+          # Update package manager
+          dnf update -y
+
+          # Install Python 3 and pip
           dnf install -y python3 python3-pip
 
-          # Install Flask and requests
+          # Install Flask and requests via pip
+          # Note: We use pip because python3-flask isn't in AL2023 repos
           pip3 install flask requests
 
-          # Create the vulnerable app
+          echo "Python version: $(python3 --version)"
+          echo "Pip packages installed: flask, requests"
+
+          #############################################
+          # STEP 3: Create the vulnerable Flask app
+          #############################################
+          echo ""
+          echo "[Step 3/5] Creating Flask application..."
+
           mkdir -p /opt/ssrf-app
+
           cat > /opt/ssrf-app/app.py << 'FLASK_APP'
+          """
+          SSRF Vulnerable Application
+
+          This application demonstrates Server-Side Request Forgery (SSRF).
+
+          THE VULNERABILITY:
+          The /fetch endpoint accepts any URL and fetches it from the server.
+          This allows attackers to:
+          - Access internal services (like the metadata service)
+          - Bypass firewalls (requests come from the server, not the attacker)
+          - Steal credentials from cloud metadata services
+
+          THIS IS INTENTIONALLY VULNERABLE FOR EDUCATIONAL PURPOSES.
+          """
           from flask import Flask, request, jsonify
           import requests
 
@@ -146,48 +230,78 @@ Resources:
               return '''
               <h1>SSRF Lab - Vulnerable Application</h1>
               <p>This application has an SSRF vulnerability for educational purposes.</p>
-              <p>Endpoints:</p>
+              <h2>Endpoints:</h2>
               <ul>
                   <li><code>/health</code> - Health check</li>
                   <li><code>/fetch?url=URL</code> - Fetch a URL (VULNERABLE)</li>
               </ul>
+              <h2>Try the Attack:</h2>
+              <pre>curl "http://YOUR_IP/fetch?url=http://169.254.169.254/latest/meta-data/"</pre>
               '''
 
           @app.route('/health')
           def health():
+              """Health check endpoint - returns healthy if app is running."""
               return jsonify({"status": "healthy"})
 
           @app.route('/fetch')
           def fetch_url():
               """
               INTENTIONALLY VULNERABLE ENDPOINT
+
               This endpoint will fetch any URL, including internal services.
               This is a Server-Side Request Forgery (SSRF) vulnerability.
+
+              A SECURE version would:
+              1. Validate URL against an allowlist of permitted domains
+              2. Block internal IP ranges (169.254.x.x, 10.x.x.x, 172.16.x.x, 192.168.x.x)
+              3. Block localhost and loopback addresses
+              4. Use DNS resolution validation to prevent DNS rebinding
+              5. Set strict timeouts and size limits
               """
               url = request.args.get('url')
+
               if not url:
-                  return jsonify({"error": "Missing 'url' parameter"}), 400
+                  return jsonify({
+                      "error": "Missing 'url' parameter",
+                      "usage": "/fetch?url=https://example.com"
+                  }), 400
 
               try:
                   # VULNERABLE: No validation of the URL
-                  # A real application should:
-                  # 1. Validate URL against an allowlist
-                  # 2. Block internal IP ranges (169.254.x.x, 10.x.x.x, etc.)
-                  # 3. Use a URL parsing library to prevent bypass techniques
+                  # An attacker can request internal URLs like:
+                  # - http://169.254.169.254/latest/meta-data/ (AWS metadata)
+                  # - http://localhost:8080/admin (internal services)
+                  # - http://10.0.0.1/internal (private network)
                   response = requests.get(url, timeout=5)
                   return response.text, response.status_code
+              except requests.exceptions.Timeout:
+                  return jsonify({"error": "Request timed out"}), 504
+              except requests.exceptions.ConnectionError as e:
+                  return jsonify({"error": f"Connection failed: {str(e)}"}), 502
               except requests.exceptions.RequestException as e:
                   return jsonify({"error": str(e)}), 500
 
           if __name__ == '__main__':
+              # Run on all interfaces, port 80
+              # In production, you'd use gunicorn/uwsgi behind nginx
+              print("Starting SSRF vulnerable app on port 80...")
               app.run(host='0.0.0.0', port=80)
           FLASK_APP
 
-          # Create systemd service
+          echo "Flask app created at /opt/ssrf-app/app.py"
+
+          #############################################
+          # STEP 4: Create and start systemd service
+          #############################################
+          echo ""
+          echo "[Step 4/5] Setting up systemd service..."
+
           cat > /etc/systemd/system/ssrf-app.service << 'SERVICE'
           [Unit]
-          Description=SSRF Vulnerable Flask App
-          After=network.target
+          Description=SSRF Vulnerable Flask App (Educational)
+          After=network-online.target
+          Wants=network-online.target
 
           [Service]
           Type=simple
@@ -196,13 +310,49 @@ Resources:
           ExecStart=/usr/bin/python3 /opt/ssrf-app/app.py
           Restart=always
           RestartSec=3
+          StandardOutput=journal
+          StandardError=journal
 
           [Install]
           WantedBy=multi-user.target
           SERVICE
 
-          # Upload sensitive data to S3
-          aws s3 cp - s3://lab02-ssrf-data-${AWS::AccountId}/sensitive-data.txt << 'DATA'
+          # Reload systemd and start the service
+          systemctl daemon-reload
+          systemctl enable ssrf-app
+          systemctl start ssrf-app
+
+          # Wait a moment for the service to start
+          sleep 3
+
+          # Check if service is running
+          if systemctl is-active --quiet ssrf-app; then
+            echo "Flask app service started successfully"
+          else
+            echo "WARNING: Flask app service may not have started"
+            echo "Service status:"
+            systemctl status ssrf-app --no-pager || true
+          fi
+
+          #############################################
+          # STEP 5: Upload test data to S3
+          #############################################
+          echo ""
+          echo "[Step 5/5] Uploading test data to S3..."
+
+          # Wait for IAM role to be available (can take a few seconds)
+          echo "Waiting for IAM role credentials..."
+          for i in {1..30}; do
+            if aws sts get-caller-identity > /dev/null 2>&1; then
+              echo "IAM role is ready"
+              break
+            fi
+            echo "Waiting for IAM role... ($i/30)"
+            sleep 2
+          done
+
+          # Create the test data file
+          cat > /tmp/sensitive-data.txt << 'DATA'
           =====================================
           SIMULATED SENSITIVE DATA
           =====================================
@@ -222,15 +372,44 @@ Resources:
           3. Stole IAM credentials
           4. Used credentials to access S3
 
-          NEXT: Fix this by enabling IMDSv2!
+          NEXT STEP: Fix this by enabling IMDSv2!
+
+          aws ec2 modify-instance-metadata-options \
+            --instance-id YOUR_INSTANCE_ID \
+            --http-tokens required
           DATA
 
-          # Start the service
-          systemctl daemon-reload
-          systemctl enable ssrf-app
-          systemctl start ssrf-app
+          # Upload to S3 (non-fatal if it fails)
+          if aws s3 cp /tmp/sensitive-data.txt s3://lab02-ssrf-data-${AWS::AccountId}/sensitive-data.txt; then
+            echo "Test data uploaded to S3 successfully"
+          else
+            echo "WARNING: Failed to upload test data to S3"
+            echo "You can manually upload it later with:"
+            echo "  aws s3 cp /tmp/sensitive-data.txt s3://lab02-ssrf-data-${AWS::AccountId}/sensitive-data.txt"
+          fi
 
-          echo "Setup complete!"
+          #############################################
+          # SETUP COMPLETE
+          #############################################
+          echo ""
+          echo "=========================================="
+          echo "SSRF Lab Setup - Completed at $(date)"
+          echo "=========================================="
+          echo ""
+          echo "To verify the app is running:"
+          echo "  curl http://localhost/health"
+          echo ""
+          echo "To view logs:"
+          echo "  journalctl -u ssrf-app -f"
+          echo ""
+
+          # Final health check
+          sleep 2
+          if curl -s http://localhost/health | grep -q "healthy"; then
+            echo "SUCCESS: Health check passed!"
+          else
+            echo "WARNING: Health check failed - app may still be starting"
+          fi
       Tags:
         - Key: Name
           Value: lab02-ssrf-vulnerable-instance
@@ -241,7 +420,7 @@ Resources:
 
 Outputs:
   InstanceId:
-    Description: EC2 Instance ID
+    Description: EC2 Instance ID (use this to enable IMDSv2)
     Value: !Ref VulnerableInstance
 
   InstancePublicIp:
@@ -260,10 +439,18 @@ Outputs:
     Description: URL of the vulnerable application
     Value: !Sub 'http://${VulnerableInstance.PublicIp}'
 
+  HealthCheckCommand:
+    Description: Command to check if the app is running
+    Value: !Sub 'curl http://${VulnerableInstance.PublicIp}/health'
+
   AttackCommand:
     Description: Command to start the SSRF attack
     Value: !Sub 'curl "http://${VulnerableInstance.PublicIp}/fetch?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/"'
 
+  TroubleshootingTip:
+    Description: If app doesn't respond, SSH in and check logs
+    Value: 'SSH to instance and run: sudo cat /var/log/user-data.log'
+
   Message:
     Description: Next steps
-    Value: 'Wait 2-3 minutes for the app to start, then follow the lab instructions to perform the SSRF attack.'
+    Value: 'Wait 3-5 minutes for setup to complete. Check health with the HealthCheckCommand above.'
