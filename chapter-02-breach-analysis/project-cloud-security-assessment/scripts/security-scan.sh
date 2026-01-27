@@ -73,12 +73,18 @@ fi
 echo -n "Old Access Keys (>90 days): "
 OLD_KEYS=0
 for user in $USERS; do
-    KEY_DATES=$(aws iam list-access-keys --user-name "$user" --query 'AccessKeyMetadata[].CreateDate' --output text 2>/dev/null)
-    for date in $KEY_DATES; do
-        if [ -n "$date" ]; then
-            KEY_AGE=$(( ($(date +%s) - $(date -d "$date" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${date%+*}" +%s 2>/dev/null)) / 86400 ))
-            if [ "$KEY_AGE" -gt 90 ] 2>/dev/null; then
-                ((OLD_KEYS++))
+    # Use AWS CLI to get key age directly
+    KEY_INFO=$(aws iam list-access-keys --user-name "$user" --query 'AccessKeyMetadata[].CreateDate' --output text 2>/dev/null)
+    for key_date in $KEY_INFO; do
+        if [ -n "$key_date" ] && [ "$key_date" != "None" ]; then
+            # Try Linux date format first, then macOS
+            NOW=$(date +%s)
+            KEY_EPOCH=$(date -d "$key_date" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S%z" "$key_date" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${key_date%%+*}" +%s 2>/dev/null || echo "0")
+            if [ "$KEY_EPOCH" -gt 0 ] 2>/dev/null; then
+                KEY_AGE=$(( (NOW - KEY_EPOCH) / 86400 ))
+                if [ "$KEY_AGE" -gt 90 ] 2>/dev/null; then
+                    ((OLD_KEYS++))
+                fi
             fi
         fi
     done

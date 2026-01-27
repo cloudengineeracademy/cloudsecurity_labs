@@ -271,29 +271,42 @@ python3 sample-code/secure-config.py 2>/dev/null || echo "Expected: Need to run 
 
 ## Part 5: Set Up Git Pre-Commit Hook
 
-### Step 5.1: Create the Hook
+### Step 5.1: Initialize a Test Repository
 
-```bash
-chmod +x scripts/setup-precommit.sh
-./scripts/setup-precommit.sh
-```
-
-This creates a git hook that scans for secrets before every commit.
-
-### Step 5.2: Test the Hook
-
-Try to commit the vulnerable file:
+First, create a fresh git repo for testing:
 
 ```bash
 cd sample-code
 git init
+```
+
+### Step 5.2: Install the Hook
+
+```bash
+chmod +x ../scripts/setup-precommit.sh
+../scripts/setup-precommit.sh
+```
+
+This installs a pre-commit hook in your test repo that scans for secrets before every commit.
+
+### Step 5.3: Test the Hook
+
+Try to commit the vulnerable file:
+
+```bash
 git add vulnerable-config.py
 git commit -m "Adding config"
 ```
 
 The commit should be **blocked** with a warning about detected secrets.
 
-### Step 5.3: Hook Output Example
+Go back to the lab root when done:
+
+```bash
+cd ..
+```
+
+### Step 5.4: Hook Output Example
 
 ```
 ============================================

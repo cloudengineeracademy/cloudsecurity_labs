@@ -84,9 +84,21 @@ for FILE in $STAGED_FILES; do
 
     FILE_ISSUES=""
 
-    # Check for AWS Access Key
+    # Check for AWS Access Key ID
     if grep -n "AKIA[0-9A-Z]\{16\}" "$FILE" 2>/dev/null; then
         FILE_ISSUES+="  AWS Access Key ID\n"
+        ((ISSUES_FOUND++))
+    fi
+
+    # Check for AWS Secret Access Key
+    if grep -in "secret.*key.*=[[:space:]]*['\"][A-Za-z0-9/+=]\{30,\}['\"]" "$FILE" 2>/dev/null | grep -qv "example\|sample"; then
+        FILE_ISSUES+="  AWS Secret Access Key\n"
+        ((ISSUES_FOUND++))
+    fi
+
+    # Check for generic secrets
+    if grep -in "secret[[:space:]]*=[[:space:]]*['\"][^'\"]\{8,\}['\"]" "$FILE" 2>/dev/null | grep -qv "example\|sample"; then
+        FILE_ISSUES+="  Secret pattern\n"
         ((ISSUES_FOUND++))
     fi
 
@@ -162,9 +174,10 @@ chmod +x "$HOOK_FILE"
 echo -e "${GREEN}Pre-commit hook installed successfully!${NC}"
 echo ""
 echo "The hook will scan for:"
-echo "  - AWS Access Keys"
+echo "  - AWS Access Key IDs"
+echo "  - AWS Secret Access Keys"
 echo "  - Private keys"
-echo "  - Hardcoded passwords"
+echo "  - Hardcoded passwords and secrets"
 echo "  - API keys"
 echo "  - GitHub tokens"
 echo "  - Stripe keys"
