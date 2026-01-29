@@ -1,0 +1,38 @@
+{
+    "description": "AWS Config managed rules used in Lab 04",
+    "rules": [
+        {
+            "name": "restricted-ssh",
+            "identifier": "INCOMING_SSH_DISABLED",
+            "description": "Checks whether security groups allow unrestricted incoming SSH traffic (port 22 from 0.0.0.0/0)",
+            "scope": {
+                "complianceResourceTypes": ["AWS::EC2::SecurityGroup"]
+            },
+            "triggerType": "ConfigurationItemChangeNotification",
+            "severity": "HIGH",
+            "remediation": "Remove the 0.0.0.0/0 SSH rule and restrict to specific IP ranges"
+        },
+        {
+            "name": "cloud-trail-encryption-enabled",
+            "identifier": "CLOUD_TRAIL_ENCRYPTION_ENABLED",
+            "description": "Checks whether CloudTrail is configured to use server-side encryption with KMS CMK",
+            "scope": {
+                "complianceResourceTypes": ["AWS::CloudTrail::Trail"]
+            },
+            "triggerType": "ConfigurationItemChangeNotification",
+            "severity": "MEDIUM",
+            "remediation": "Enable KMS encryption on the CloudTrail trail"
+        },
+        {
+            "name": "s3-bucket-server-side-encryption-enabled",
+            "identifier": "S3_BUCKET_SERVER_SIDE_ENCRYPTION_ENABLED",
+            "description": "Checks whether S3 buckets have default server-side encryption enabled",
+            "scope": {
+                "complianceResourceTypes": ["AWS::S3::Bucket"]
+            },
+            "triggerType": "ConfigurationItemChangeNotification",
+            "severity": "MEDIUM",
+            "remediation": "Enable default encryption on the S3 bucket"
+        }
+    ]
+}

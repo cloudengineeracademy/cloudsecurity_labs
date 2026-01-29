@@ -48,6 +48,8 @@ Chapter 01: Foundations
     ↓
 Chapter 02: Real-World Breach Analysis
     ↓
+Chapter 03: AWS Security Services
+    ↓
 Project: Cloud Security Assessment
 ```
 
@@ -83,6 +85,25 @@ Learn from the failures that cost companies billions. Analyze Capital One, Uber,
 | Project | What You'll Do |
 |---------|----------------|
 | [Cloud Security Assessment](./chapter-02-breach-analysis/project-cloud-security-assessment/) | Conduct a full security assessment of an AWS environment |
+
+---
+
+## Chapter 03: AWS Security Services
+
+Enable the core security services every AWS account needs. Track your progress from 15/100 to 100/100 across 5 security pillars.
+
+| Lab | What You'll Learn |
+|-----|-------------------|
+| [Lab 01: Recon Scan](./chapter-03-aws-security-services/lab-01-recon/) | 5-pillar security assessment of your account |
+| [Lab 02: CloudTrail](./chapter-03-aws-security-services/lab-02-cloudtrail/) | KMS encryption, multi-region audit logging |
+| [Lab 03: GuardDuty + Security Hub](./chapter-03-aws-security-services/lab-03-guardduty-security-hub/) | Threat detection, finding triage |
+| [Lab 04: Config + Access Analyzer](./chapter-03-aws-security-services/lab-04-config-access-analyzer/) | Compliance monitoring, break-and-fix exercise |
+
+### Baseline Lockdown Project
+
+| Project | What You'll Do |
+|---------|----------------|
+| [Baseline Lockdown](./chapter-03-aws-security-services/project-baseline-lockdown/) | Close all security gaps, reach 100/100, generate a baseline report |
 
 ---
 
