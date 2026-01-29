@@ -69,8 +69,9 @@ echo ""
 echo -e "${YELLOW}Your most recent 10 API calls:${NC}"
 echo ""
 
+USERNAME=$(echo "$CALLER_ARN" | awk -F'/' '{print $NF}')
 aws cloudtrail lookup-events \
-    --lookup-attributes "AttributeKey=Username,AttributeValue=$(aws sts get-caller-identity --query 'Arn' --output text 2>/dev/null | awk -F'/' '{print $NF}')" \
+    --lookup-attributes "AttributeKey=Username,AttributeValue=$USERNAME" \
     --max-results 10 \
     --query 'Events[].{Time:EventTime,Event:EventName,Source:EventSource}' \
     --output table 2>/dev/null

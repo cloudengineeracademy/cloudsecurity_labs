@@ -37,7 +37,6 @@ if [ "$CONFIRM" != "yes" ]; then
 fi
 
 echo ""
-ERRORS=0
 
 # ============================================================
 # Step 1: Delete exercise security group (if leftover)
@@ -222,6 +221,9 @@ echo "    - KMS key (scheduled for deletion in 7 days)"
 echo "    - S3 buckets (ch03-cloudtrail, ch03-config)"
 echo ""
 echo "  Note: KMS keys have a mandatory 7-day waiting period"
-echo "  before final deletion. You can cancel this with:"
-echo "    aws kms cancel-key-deletion --key-id $KMS_KEY_ID"
+echo "  before final deletion."
+if [ -n "$KMS_KEY_ID" ] && [ "$KMS_KEY_ID" != "None" ]; then
+    echo "  You can cancel this with:"
+    echo "    aws kms cancel-key-deletion --key-id $KMS_KEY_ID"
+fi
 echo ""

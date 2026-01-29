@@ -372,8 +372,14 @@ echo ""
 BAR_WIDTH=40
 FILLED=$((TOTAL_SCORE * BAR_WIDTH / MAX_SCORE))
 EMPTY=$((BAR_WIDTH - FILLED))
-BAR=$(printf '%0.s█' $(seq 1 $FILLED 2>/dev/null))
-SPACE=$(printf '%0.s░' $(seq 1 $EMPTY 2>/dev/null))
+BAR=""
+if [ "$FILLED" -gt 0 ]; then
+    BAR=$(printf '%0.s█' $(seq 1 $FILLED))
+fi
+SPACE=""
+if [ "$EMPTY" -gt 0 ]; then
+    SPACE=$(printf '%0.s░' $(seq 1 $EMPTY))
+fi
 echo -e "  [${GREEN}${BAR}${NC}${SPACE}] ${TOTAL_SCORE}%"
 echo ""
 
