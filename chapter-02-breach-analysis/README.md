@@ -35,7 +35,6 @@ Every breach can be analyzed with five questions:
 | 01 | [Breach Analysis Framework](./lab-01-breach-framework/) | Learn the 5-question methodology | No |
 | 02 | [SSRF and Metadata Attacks](./lab-02-ssrf-metadata-attack/) | Simulate the Capital One attack | Yes |
 | 03 | [Credential Security](./lab-03-credential-security/) | Find and fix hardcoded secrets | Yes |
-| 04 | [Breach Post-Mortem Report](./lab-04-breach-postmortem/) | Write professional security reports | No |
 
 ## Estimated Cost
 
@@ -63,13 +62,11 @@ Before starting this chapter:
 ## Learning Path
 
 ```
-Lab 01: Framework    → Understand how to analyze breaches
+Lab 01: Framework     → Understand how to analyze breaches
          ↓
-Lab 02: SSRF Attack  → Simulate Capital One attack pattern
+Lab 02: SSRF Attack   → Simulate Capital One attack pattern
          ↓
-Lab 03: Credentials  → Prevent Uber/LastPass patterns
-         ↓
-Lab 04: Post-Mortem  → Communicate findings professionally
+Lab 03: Credentials   → Prevent Uber/LastPass patterns
          ↓
    Project: Cloud Security Assessment
 ```

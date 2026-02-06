@@ -1,10 +1,10 @@
-# Lab 04: Breach Post-Mortem Report
+# Lab 05: Breach Post-Mortem Report
 
 ## Overview
 
 **Security knowledge means nothing if you can't communicate it effectively.**
 
-In this final lab of Chapter 02, you'll synthesize everything you've learned into a professional breach post-mortem report. This is the document that executives read, regulators request, and teams use to prevent future incidents.
+In this lab, you'll synthesize everything you've learned into a professional breach post-mortem report. This is the document that executives read, regulators request, and teams use to prevent future incidents.
 
 ## Cost
 
@@ -43,7 +43,7 @@ If you performed the Lab 02 SSRF attack, write a post-mortem based on your actua
 Every good post-mortem follows a structure. Copy the template:
 
 ```bash
-cd chapter-02-breach-analysis/lab-04-breach-postmortem
+cd chapter-03-aws-security-services/lab-05-breach-postmortem
 cp templates/postmortem-template.md my-postmortem.md
 ```
 
@@ -429,22 +429,6 @@ Avoid these common mistakes:
 
 ---
 
-## Chapter 02 Complete!
+## What's Next
 
-Congratulations! You've completed Chapter 02: Real-World Breach Analysis.
-
-### What You Learned
-
-1. **Lab 01:** The 5-question breach analysis framework
-2. **Lab 02:** How SSRF + IMDSv1 led to the Capital One breach
-3. **Lab 03:** Why hardcoded credentials are dangerous
-4. **Lab 04:** How to communicate security findings professionally
-
-### Next Steps
-
-- Apply this knowledge to your own AWS environments
-- Review your organization's IMDS settings
-- Audit codebases for hardcoded secrets
-- Practice writing post-mortems for tabletop exercises
-
-Continue to the **Cloud Security Assessment Project** to put everything together!
+Continue to [Lab 06: CloudTrail Log Investigation](../lab-06-cloudtrail-investigation/) — investigate a simulated breach by analyzing CloudTrail event logs like a security analyst.

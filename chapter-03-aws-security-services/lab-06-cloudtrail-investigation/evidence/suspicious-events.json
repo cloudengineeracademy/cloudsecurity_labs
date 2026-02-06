@@ -1,0 +1,208 @@
+[
+    {
+        "eventTime": "2026-01-28T14:05:00Z",
+        "eventName": "AssumeRole",
+        "eventSource": "sts.amazonaws.com",
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": "198.51.100.23",
+        "userAgent": "aws-cli/2.15.0 Python/3.11.6 Linux/5.15.0",
+        "userIdentity": {
+            "type": "IAMUser",
+            "arn": "arn:aws:iam::938471625033:user/ci-deploy-bot",
+            "accountId": "938471625033",
+            "userName": "ci-deploy-bot"
+        },
+        "requestParameters": {
+            "roleArn": "arn:aws:iam::938471625033:role/S3-DataAccess-Role",
+            "roleSessionName": "maintenance-session",
+            "durationSeconds": 3600
+        },
+        "responseElements": {
+            "credentials": {
+                "accessKeyId": "ASIA2EXAMPLE1234",
+                "expiration": "2026-01-28T15:05:00Z",
+                "sessionToken": "[REDACTED]"
+            },
+            "assumedRoleUser": {
+                "assumedRoleId": "AROA2EXAMPLE:maintenance-session",
+                "arn": "arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session"
+            }
+        },
+        "errorCode": null,
+        "errorMessage": null
+    },
+    {
+        "eventTime": "2026-01-28T14:06:12Z",
+        "eventName": "ListBuckets",
+        "eventSource": "s3.amazonaws.com",
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": "198.51.100.23",
+        "userAgent": "aws-cli/2.15.0 Python/3.11.6 Linux/5.15.0",
+        "userIdentity": {
+            "type": "AssumedRole",
+            "arn": "arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session",
+            "accountId": "938471625033",
+            "sessionContext": {
+                "sessionIssuer": {
+                    "type": "Role",
+                    "arn": "arn:aws:iam::938471625033:role/S3-DataAccess-Role",
+                    "userName": "S3-DataAccess-Role"
+                }
+            }
+        },
+        "requestParameters": null,
+        "responseElements": null,
+        "errorCode": null,
+        "errorMessage": null
+    },
+    {
+        "eventTime": "2026-01-28T14:07:45Z",
+        "eventName": "ListObjects",
+        "eventSource": "s3.amazonaws.com",
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": "198.51.100.23",
+        "userAgent": "aws-cli/2.15.0 Python/3.11.6 Linux/5.15.0",
+        "userIdentity": {
+            "type": "AssumedRole",
+            "arn": "arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session",
+            "accountId": "938471625033"
+        },
+        "requestParameters": {
+            "bucketName": "acme-corp-financial-data",
+            "prefix": "reports/2025/"
+        },
+        "responseElements": null,
+        "errorCode": null,
+        "errorMessage": null
+    },
+    {
+        "eventTime": "2026-01-28T14:08:30Z",
+        "eventName": "GetObject",
+        "eventSource": "s3.amazonaws.com",
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": "198.51.100.23",
+        "userAgent": "aws-cli/2.15.0 Python/3.11.6 Linux/5.15.0",
+        "userIdentity": {
+            "type": "AssumedRole",
+            "arn": "arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session",
+            "accountId": "938471625033"
+        },
+        "requestParameters": {
+            "bucketName": "acme-corp-financial-data",
+            "key": "reports/2025/q4-revenue-projections.xlsx"
+        },
+        "responseElements": null,
+        "errorCode": null,
+        "errorMessage": null
+    },
+    {
+        "eventTime": "2026-01-28T14:09:15Z",
+        "eventName": "GetObject",
+        "eventSource": "s3.amazonaws.com",
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": "198.51.100.23",
+        "userAgent": "aws-cli/2.15.0 Python/3.11.6 Linux/5.15.0",
+        "userIdentity": {
+            "type": "AssumedRole",
+            "arn": "arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session",
+            "accountId": "938471625033"
+        },
+        "requestParameters": {
+            "bucketName": "acme-corp-financial-data",
+            "key": "reports/2025/customer-pii-export.csv"
+        },
+        "responseElements": null,
+        "errorCode": null,
+        "errorMessage": null
+    },
+    {
+        "eventTime": "2026-01-28T14:10:02Z",
+        "eventName": "CreateUser",
+        "eventSource": "iam.amazonaws.com",
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": "198.51.100.23",
+        "userAgent": "aws-cli/2.15.0 Python/3.11.6 Linux/5.15.0",
+        "userIdentity": {
+            "type": "AssumedRole",
+            "arn": "arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session",
+            "accountId": "938471625033"
+        },
+        "requestParameters": {
+            "userName": "backup-admin"
+        },
+        "responseElements": {
+            "user": {
+                "userName": "backup-admin",
+                "userId": "AIDA2EXAMPLE5678",
+                "arn": "arn:aws:iam::938471625033:user/backup-admin",
+                "createDate": "2026-01-28T14:10:02Z"
+            }
+        },
+        "errorCode": null,
+        "errorMessage": null
+    },
+    {
+        "eventTime": "2026-01-28T14:10:45Z",
+        "eventName": "CreateAccessKey",
+        "eventSource": "iam.amazonaws.com",
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": "198.51.100.23",
+        "userAgent": "aws-cli/2.15.0 Python/3.11.6 Linux/5.15.0",
+        "userIdentity": {
+            "type": "AssumedRole",
+            "arn": "arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session",
+            "accountId": "938471625033"
+        },
+        "requestParameters": {
+            "userName": "backup-admin"
+        },
+        "responseElements": {
+            "accessKey": {
+                "userName": "backup-admin",
+                "accessKeyId": "AKIA2EXAMPLEKEY99",
+                "status": "Active",
+                "createDate": "2026-01-28T14:10:45Z"
+            }
+        },
+        "errorCode": null,
+        "errorMessage": null
+    },
+    {
+        "eventTime": "2026-01-28T14:11:30Z",
+        "eventName": "StopLogging",
+        "eventSource": "cloudtrail.amazonaws.com",
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": "198.51.100.23",
+        "userAgent": "aws-cli/2.15.0 Python/3.11.6 Linux/5.15.0",
+        "userIdentity": {
+            "type": "AssumedRole",
+            "arn": "arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session",
+            "accountId": "938471625033"
+        },
+        "requestParameters": {
+            "name": "org-security-trail"
+        },
+        "responseElements": null,
+        "errorCode": "AccessDeniedException",
+        "errorMessage": "User: arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session is not authorized to perform: cloudtrail:StopLogging on resource: arn:aws:cloudtrail:us-east-1:938471625033:trail/org-security-trail with an explicit deny in a service control policy"
+    },
+    {
+        "eventTime": "2026-01-28T14:12:00Z",
+        "eventName": "DeleteTrail",
+        "eventSource": "cloudtrail.amazonaws.com",
+        "awsRegion": "us-east-1",
+        "sourceIPAddress": "198.51.100.23",
+        "userAgent": "aws-cli/2.15.0 Python/3.11.6 Linux/5.15.0",
+        "userIdentity": {
+            "type": "AssumedRole",
+            "arn": "arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session",
+            "accountId": "938471625033"
+        },
+        "requestParameters": {
+            "name": "org-security-trail"
+        },
+        "responseElements": null,
+        "errorCode": "AccessDeniedException",
+        "errorMessage": "User: arn:aws:sts::938471625033:assumed-role/S3-DataAccess-Role/maintenance-session is not authorized to perform: cloudtrail:DeleteTrail on resource: arn:aws:cloudtrail:us-east-1:938471625033:trail/org-security-trail with an explicit deny in a service control policy"
+    }
+]

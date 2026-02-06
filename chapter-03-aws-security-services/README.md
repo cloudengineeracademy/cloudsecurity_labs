@@ -31,6 +31,9 @@ Your score is tracked across 5 pillars:
 | 02 | [CloudTrail](./lab-02-cloudtrail/) | Enable CloudTrail with KMS encryption | ~40 |
 | 03 | [GuardDuty + Security Hub](./lab-03-guardduty-security-hub/) | Enable threat detection services | ~65 |
 | 04 | [Config + Access Analyzer](./lab-04-config-access-analyzer/) | Enable compliance monitoring | ~85 |
+| 05 | [Breach Post-Mortem Report](./lab-05-breach-postmortem/) | Write professional security reports | — |
+| 06 | [CloudTrail Log Investigation](./lab-06-cloudtrail-investigation/) | Investigate a breach using CloudTrail evidence | — |
+| 07 | [Organizations & SCPs](./lab-07-organizations-scps/) | Analyze SCPs and design multi-account architecture | — |
 | Project | [Baseline Lockdown](./project-baseline-lockdown/) | Close all remaining gaps | 100 |
 
 ## How It Works
@@ -87,6 +90,12 @@ Lab 02: CloudTrail      → Record every API call in every region
 Lab 03: Detection       → Enable GuardDuty + Security Hub
          ↓
 Lab 04: Compliance      → Enable Config + Access Analyzer
+         ↓
+Lab 05: Post-Mortem     → Write professional security reports
+         ↓
+Lab 06: CT Investigation → Investigate a breach from log evidence
+         ↓
+Lab 07: Orgs & SCPs     → Design guardrails for multi-account security
          ↓
    Project: Baseline Lockdown → Close every gap, reach 100/100
 ```

@@ -442,6 +442,7 @@ You DELETE the test resource
 ```
 
 In production, this cycle happens automatically:
+
 - Config watches for changes
 - Rules evaluate compliance in real-time
 - Non-compliant resources trigger alerts (SNS, EventBridge)
@@ -489,4 +490,4 @@ bash lab-04-config-access-analyzer/scripts/enable-compliance.sh
 
 ## What's Next
 
-Proceed to [Project: Baseline Lockdown](../project-baseline-lockdown/) to close all remaining gaps and reach 100/100.
+Proceed to [Lab 05: Breach Post-Mortem Report](../lab-05-breach-postmortem/) to learn how to communicate security findings professionally.
