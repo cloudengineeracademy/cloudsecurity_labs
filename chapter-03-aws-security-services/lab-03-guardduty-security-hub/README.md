@@ -94,11 +94,10 @@ You should see the **AWS Foundational Security Best Practices** standard (and po
 2. You should see the Security Hub dashboard
 3. Click **Security standards** on the left:
    - **AWS Foundational Security Best Practices** should show as enabled
-   - Note the compliance score — it will be low at first, since checks take time to run
-4. Click **Findings** — you'll start seeing automated checks appear over the next 15-30 minutes
-5. Click **Summary** — this gives you an overview of findings by severity
+   - The compliance score will show as **0% or unavailable** — that's expected (see note below)
+4. Click **Summary** — this gives you an overview of the dashboard
 
-**Note:** The Security standards compliance score may show as 0% or unavailable right now. That's expected — compliance checks (PASSED/FAILED) require **AWS Config** to be recording resources, which you'll enable in Lab 04. For now, just confirm Security Hub is enabled and the standards are listed.
+> **Why is the compliance score empty?** Security Hub compliance checks (PASSED/FAILED) require **AWS Config** to be recording resources. You'll enable Config in **Lab 04**. After completing Lab 04, come back here and you'll see compliance scores populate with PASSED/FAILED checks. For now, just confirm Security Hub is enabled and the standards are listed.
 
 ### Part 3: Generate Sample Findings
 

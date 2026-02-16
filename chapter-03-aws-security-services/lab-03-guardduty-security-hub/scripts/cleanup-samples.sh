@@ -54,24 +54,31 @@ echo ""
 # Archive in batches of 50 (API limit)
 ARCHIVED=0
 while true; do
+    # Get up to 50 sample finding IDs as tab-separated text
     FINDING_IDS=$(aws guardduty list-findings --detector-id "$GD_DETECTOR_ID" \
         --finding-criteria '{"Criterion":{"service.additionalInfo.sample":{"Eq":["true"]}}}' \
         --max-results 50 \
-        --query 'FindingIds' --output json 2>/dev/null)
+        --query 'FindingIds' --output text 2>/dev/null)
 
     # Check if we got any findings
-    COUNT=$(echo "$FINDING_IDS" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
-
-    if [ "$COUNT" = "0" ] || [ "$COUNT" = "" ]; then
+    if [ -z "$FINDING_IDS" ] || [ "$FINDING_IDS" = "None" ] || [ "$FINDING_IDS" = "" ]; then
         break
     fi
 
-    # Archive this batch
-    aws guardduty archive-findings --detector-id "$GD_DETECTOR_ID" \
-        --finding-ids $(echo "$FINDING_IDS" | python3 -c "import sys,json; print(' '.join(json.load(sys.stdin)))" 2>/dev/null) \
-        2>/dev/null
+    # Count this batch (tab-separated IDs)
+    BATCH_COUNT=$(echo "$FINDING_IDS" | tr '\t' '\n' | wc -l | tr -d ' ')
 
-    ARCHIVED=$((ARCHIVED + COUNT))
+    # Archive this batch (unquoted $FINDING_IDS splits on tabs/spaces into separate args)
+    aws guardduty archive-findings --detector-id "$GD_DETECTOR_ID" \
+        --finding-ids $FINDING_IDS 2>/dev/null
+
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}  Error archiving batch. Retrying in 5 seconds...${NC}"
+        sleep 5
+        continue
+    fi
+
+    ARCHIVED=$((ARCHIVED + BATCH_COUNT))
     echo "  Archived $ARCHIVED findings..."
 done
 
