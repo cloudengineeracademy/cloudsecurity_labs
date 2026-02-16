@@ -42,18 +42,25 @@ echo "  This creates SAMPLE findings (not real threats) for learning."
 echo "  Sample findings are clearly marked as '[SAMPLE]' in GuardDuty."
 echo ""
 
-aws guardduty create-sample-findings --detector-id "$GD_DETECTOR_ID" 2>/dev/null
+GENERATE_OUTPUT=$(aws guardduty create-sample-findings --detector-id "$GD_DETECTOR_ID" 2>&1)
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Sample findings generated.${NC}"
 else
     echo -e "${RED}Failed to generate sample findings.${NC}"
+    echo "  Error: $GENERATE_OUTPUT"
+    echo ""
+    echo "  Troubleshooting:"
+    echo "    - Check your detector ID: aws guardduty list-detectors"
+    echo "    - Check your region: aws configure get region"
+    echo "    - Check permissions: your IAM user needs guardduty:CreateSampleFindings"
     exit 1
 fi
 
 echo ""
-echo "  Waiting 10 seconds for findings to populate..."
-sleep 10
+echo "  Waiting 30 seconds for findings to populate..."
+echo "  (AWS needs time to create findings across all protection plans)"
+sleep 30
 echo ""
 
 # ============================================================
@@ -99,9 +106,30 @@ TOTAL_FINDINGS=$(aws guardduty list-findings --detector-id "$GD_DETECTOR_ID" \
 echo "  Total sample findings: $TOTAL_FINDINGS"
 echo ""
 
+if [ "$TOTAL_FINDINGS" = "0" ]; then
+    echo -e "${YELLOW}  No findings returned yet. This can happen if AWS needs more time.${NC}"
+    echo "  Wait 60 seconds and run this command to check:"
+    echo ""
+    echo "  aws guardduty list-findings --detector-id $GD_DETECTOR_ID \\"
+    echo "      --finding-criteria '{\"Criterion\":{\"service.additionalInfo.sample\":{\"Eq\":[\"true\"]}}}' \\"
+    echo "      --query 'FindingIds | length(@)' --output text"
+    echo ""
+fi
+
 echo "=============================================="
 echo "  WHAT THESE FINDINGS MEAN"
 echo "=============================================="
+echo ""
+echo "  AWS generates sample findings across ALL GuardDuty protection"
+echo "  plans: EC2, S3, EKS, ECS, Lambda, IAM, Malware, and more."
+echo "  Seeing hundreds of findings is NORMAL and expected."
+echo ""
+echo "  These are FAKE findings with placeholder resources like:"
+echo "    - i-99999999 (fake EC2 instance)"
+echo "    - GeneratedFindingContainerId (fake container)"
+echo "    - GeneratedFindingEKSClusterName (fake EKS cluster)"
+echo ""
+echo -e "  ${GREEN}Sample findings are completely FREE. No cost.${NC}"
 echo ""
 echo "  In a real environment, GuardDuty would generate these"
 echo "  findings when it detects actual threats. Examples:"
@@ -115,5 +143,7 @@ echo ""
 echo "  - CryptoCurrency:EC2/BitcoinTool.B!DNS"
 echo "    An EC2 instance is communicating with Bitcoin mining pools"
 echo ""
-echo "  Next step: bash lab-03-guardduty-security-hub/scripts/triage-exercise.sh"
+echo "  Next steps:"
+echo "    1. Triage exercise: bash lab-03-guardduty-security-hub/scripts/triage-exercise.sh"
+echo "    2. Clean up samples: bash lab-03-guardduty-security-hub/scripts/cleanup-samples.sh"
 echo ""

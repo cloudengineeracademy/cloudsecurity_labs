@@ -98,7 +98,7 @@ You should see the **AWS Foundational Security Best Practices** standard (and po
 4. Click **Findings** — you'll start seeing automated checks appear over the next 15-30 minutes
 5. Click **Summary** — this gives you an overview of findings by severity
 
-**Wait 5 minutes**, then refresh the Findings page. You should start seeing automated compliance checks from the enabled standards.
+**Note:** The Security standards compliance score may show as 0% or unavailable right now. That's expected — compliance checks (PASSED/FAILED) require **AWS Config** to be recording resources, which you'll enable in Lab 04. For now, just confirm Security Hub is enabled and the standards are listed.
 
 ### Part 3: Generate Sample Findings
 
@@ -108,15 +108,21 @@ GuardDuty normally takes time to detect real threats. For learning, generate sam
 aws guardduty create-sample-findings --detector-id $GD_DETECTOR_ID
 ```
 
-Wait 10 seconds, then list the sample findings:
+Wait 30 seconds for findings to populate, then count them:
 
 ```bash
+sleep 30
+
 aws guardduty list-findings --detector-id $GD_DETECTOR_ID \
     --finding-criteria '{"Criterion":{"service.additionalInfo.sample":{"Eq":["true"]}}}' \
     --query 'FindingIds | length(@)' --output text
 ```
 
-You should see a number like 30-50 sample findings generated.
+You'll see **hundreds of sample findings** — this is normal. AWS generates sample findings across all GuardDuty protection plans (EC2, S3, EKS, ECS, Lambda, IAM, Malware, etc.). The exact number depends on your region.
+
+**These sample findings are completely FREE** and don't represent real threats. You can identify them by their fake resource names like `i-99999999`, `GeneratedFindingContainerId`, and `GeneratedFindingEKSClusterName`. They're also marked as `[SAMPLE]` in the Console.
+
+**Important:** Only run `create-sample-findings` once. Running it multiple times creates duplicate batches. If you already ran it, skip this step.
 
 Look at a high-severity finding:
 
@@ -157,14 +163,10 @@ This is the most important Console checkpoint. Open **GuardDuty → Findings** a
 
 Open **Security Hub → Findings**:
 
-1. Filter findings by **Product name = GuardDuty** — you should see the sample findings appear here too
-2. Filter by **Compliance status = FAILED** — these are the automated checks from the security standards
-3. Click on a FAILED finding — it will tell you:
-   - Which resource is non-compliant
-   - Which standard the check belongs to
-   - Remediation guidance
+1. Filter findings by **Product name = GuardDuty** — you should see the sample findings appear here too. These are the same GuardDuty sample findings, now aggregated into Security Hub.
+2. Click on any finding to see the Security Hub view — it includes remediation guidance and links to the affected resource.
 
-**Try this:** Find a finding related to CloudTrail. Is it PASSED or FAILED? If you completed Lab 02 correctly, CloudTrail checks should be PASSED.
+> **Why no compliance findings yet?** Security Hub compliance checks (PASSED/FAILED) require **AWS Config** to be recording resources. You'll enable Config in Lab 04. After completing Lab 04, come back to Security Hub and you'll see compliance scores, PASSED/FAILED checks, and your security standards score. For now, Security Hub is only showing GuardDuty threat findings.
 
 ### Part 5: Triage Exercise
 
@@ -181,7 +183,17 @@ This is an interactive quiz — 6 questions about real GuardDuty finding types. 
 
 Use `templates/triage-worksheet.md` to practice documenting a finding from the Console.
 
-### Part 6: Verify and Score
+### Part 6: Clean Up Sample Findings
+
+Now that you've explored and triaged the sample findings, clean them up. This archives all sample findings from GuardDuty and removes them from your Security Hub dashboard:
+
+```bash
+bash lab-03-guardduty-security-hub/scripts/cleanup-samples.sh
+```
+
+This only removes the fake sample findings. Real findings (if any) are untouched.
+
+### Part 7: Verify and Score
 
 ```bash
 bash lab-03-guardduty-security-hub/scripts/verify.sh
